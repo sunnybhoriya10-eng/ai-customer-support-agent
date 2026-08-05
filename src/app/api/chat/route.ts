@@ -6,8 +6,18 @@ export async function POST(req: Request) {
   try {
     const { email } = await req.json();
 
+    if (!email) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email is required",
+        },
+        { status: 400 },
+      );
+    }
+
     const customer = customers.find(
-      (item) => item.email.toLowerCase() === email.toLowerCase(),
+      (c) => c.email.toLowerCase() === email.toLowerCase(),
     );
 
     if (!customer) {
@@ -16,9 +26,7 @@ export async function POST(req: Request) {
           success: false,
           message: "Customer not found",
         },
-        {
-          status: 404,
-        },
+        { status: 404 },
       );
     }
 
@@ -29,7 +37,7 @@ Hello ${customer.name},
 
 Thank you for contacting our customer support team.
 
-We have reviewed your refund request for:
+We have reviewed your refund request.
 
 Product: ${customer.product}
 Order ID: ${customer.orderId}
@@ -46,6 +54,7 @@ Thank you.
 `;
 
     return NextResponse.json({
+      success: true,
       customer,
       decision,
       aiReply,
