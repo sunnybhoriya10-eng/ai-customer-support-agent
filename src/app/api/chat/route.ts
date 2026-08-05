@@ -1,51 +1,61 @@
 import { NextResponse } from "next/server";
 import { customers } from "@/data/customers";
+import { checkRefund } from "@/lib/refundEngine";
 
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
 
     const customer = customers.find(
-      (item) => item.email === email.toLowerCase(),
+      (item) => item.email.toLowerCase() === email.toLowerCase(),
     );
 
     if (!customer) {
       return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 },
+        {
+          success: false,
+          message: "Customer not found",
+        },
+        {
+          status: 404,
+        },
       );
     }
 
-    const approved = customer.refundDays <= 30;
+    const decision = checkRefund(customer);
 
-    return NextResponse.json({
-      customer,
-
-      decision: {
-        approved,
-        reason: approved ? "Refund approved" : "Refund period expired.",
-      },
-
-      aiReply: `
+    const aiReply = `
 Hello ${customer.name},
 
 Thank you for contacting our customer support team.
+
+We have reviewed your refund request for:
 
 Product: ${customer.product}
 Order ID: ${customer.orderId}
 
 Refund Status:
-${approved ? "Approved ✅" : "Rejected ❌"}
+${decision.approved ? "Approved ✅" : "Rejected ❌"}
 
 Reason:
-${approved ? "Customer is eligible for refund." : "Refund period expired."}
+${decision.reason}
+
+If you have any further questions, please feel free to contact us.
 
 Thank you.
-`,
+`;
+
+    return NextResponse.json({
+      customer,
+      decision,
+      aiReply,
     });
   } catch (error) {
+    console.error("API ERROR:", error);
+
     return NextResponse.json(
       {
+        success: false,
         message: "Server error",
       },
       {
